@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { LocalNotifications } from '@capacitor/local-notifications';
+import { App } from '@capacitor/app';
 
 const SCHEDULE_KEY = 'preg_notif_schedule';
 const DEFAULT_TIME = '09:00';
@@ -19,6 +20,7 @@ export function useNotifications() {
     return saved || { enabled: true, time: DEFAULT_TIME, suppReminders: true, vaccineReminders: true };
   });
   const [capAvailable, setCapAvailable] = useState(false);
+  const [permStatus, setPermStatus] = useState(null);
 
   useEffect(() => {
     localStorage.setItem(SCHEDULE_KEY, JSON.stringify(prefs));
@@ -38,9 +40,9 @@ export function useNotifications() {
           vibration: true,
         });
         const perm = await LocalNotifications.checkPermissions();
-        if (!cancelled) setCapAvailable(true);
-        if (perm.display === 'prompt' && prefs.enabled) {
-          await LocalNotifications.requestPermissions();
+        if (!cancelled) {
+          setCapAvailable(true);
+          setPermStatus(perm.display);
         }
       } catch {
         if (!cancelled) setCapAvailable(false);
@@ -48,6 +50,38 @@ export function useNotifications() {
     };
     init();
     return () => { cancelled = true; };
+  }, []);
+
+  const requestPermission = useCallback(async () => {
+    try {
+      let perm = await LocalNotifications.checkPermissions();
+      if (perm.display === 'granted') {
+        setPermStatus('granted');
+        return true;
+      }
+      if (perm.display === 'denied') {
+        await App.openSettings();
+        return false;
+      }
+      const result = await LocalNotifications.requestPermissions();
+      setPermStatus(result.display);
+      if (result.display !== 'granted') {
+        await App.openSettings();
+        return false;
+      }
+      return true;
+    } catch {
+      try {
+        await App.openSettings();
+      } catch {}
+      return false;
+    }
+  }, []);
+
+  const openSettings = useCallback(async () => {
+    try {
+      await App.openSettings();
+    } catch {}
   }, []);
 
   const scheduleSupplements = useCallback(async (supplements, customSupplements) => {
@@ -112,5 +146,5 @@ export function useNotifications() {
     }
   }, [capAvailable]);
 
-  return { prefs, setPrefs, scheduleSupplements, cancelAll, capAvailable };
+  return { prefs, setPrefs, scheduleSupplements, cancelAll, capAvailable, permStatus, requestPermission, openSettings };
 }

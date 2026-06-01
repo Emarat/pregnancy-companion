@@ -1,11 +1,18 @@
-import { Bell, BellOff, Clock } from 'lucide-react';
+import { Bell, BellOff, Clock, ExternalLink } from 'lucide-react';
 
-export default function NotificationSettings({ prefs, setPrefs, capAvailable, dict }) {
+export default function NotificationSettings({ prefs, setPrefs, capAvailable, permStatus, requestPermission, openSettings, dict }) {
   const update = (patch) => setPrefs(prev => ({ ...prev, ...patch }));
+
+  const handleToggle = async (checked) => {
+    update({ enabled: checked });
+    if (checked && permStatus !== 'granted') {
+      await requestPermission();
+    }
+  };
 
   if (!capAvailable) {
     return (
-      <section className="bg-white dark:bg-gray-800 rounded-2xl p-5 shadow-sm border border-emerald-50 animate-in fade-in slide-in-from-bottom-2 duration-500">
+      <section className="bg-white dark:bg-gray-800 rounded-2xl p-5 shadow-sm border border-emerald-50">
         <div className="flex items-center gap-2 mb-1">
           <Bell size={20} className="text-gray-300" />
           <h2 className="font-bold text-gray-800 dark:text-gray-100 text-sm">{dict.notifTitle}</h2>
@@ -18,7 +25,22 @@ export default function NotificationSettings({ prefs, setPrefs, capAvailable, di
   }
 
   return (
-    <section className="bg-white dark:bg-gray-800 rounded-2xl p-5 shadow-sm border border-emerald-50 animate-in fade-in slide-in-from-bottom-2 duration-500">
+    <section className="bg-white dark:bg-gray-800 rounded-2xl p-5 shadow-sm border border-emerald-50">
+      {permStatus && permStatus !== 'granted' && (
+        <div className="mb-4 p-3 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-xl">
+          <p className="text-xs text-amber-700 dark:text-amber-300 font-medium mb-2">
+            {dict.notifPermissionNeeded}
+          </p>
+          <button
+            onClick={openSettings}
+            className="flex items-center gap-1.5 text-xs font-semibold text-amber-600 dark:text-amber-400 hover:underline"
+          >
+            <ExternalLink size={12} />
+            {dict.notifOpenSettings}
+          </button>
+        </div>
+      )}
+
       <div className="flex items-center justify-between mb-3">
         <div className="flex items-center gap-2">
           <Bell size={18} className="text-emerald-500" />
@@ -29,7 +51,7 @@ export default function NotificationSettings({ prefs, setPrefs, capAvailable, di
             type="checkbox"
             className="sr-only peer"
             checked={prefs.enabled}
-            onChange={(e) => update({ enabled: e.target.checked })}
+            onChange={(e) => handleToggle(e.target.checked)}
           />
           <div className="w-9 h-5 bg-gray-200 dark:bg-gray-600 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-emerald-300 rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-emerald-500" />
         </label>

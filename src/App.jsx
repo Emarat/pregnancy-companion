@@ -93,7 +93,7 @@ export default function App() {
     ));
   };
 
-  const { prefs: notifPrefs, setPrefs: setNotifPrefs, scheduleSupplements, capAvailable } = useNotifications();
+  const { prefs: notifPrefs, setPrefs: setNotifPrefs, scheduleSupplements, cancelAll, capAvailable, permStatus, requestPermission, openSettings } = useNotifications();
 
   useEffect(() => {
     if (capAvailable && notifPrefs.enabled) {
@@ -229,6 +229,9 @@ export default function App() {
           prefs={notifPrefs}
           setPrefs={setNotifPrefs}
           capAvailable={capAvailable}
+          permStatus={permStatus}
+          requestPermission={requestPermission}
+          openSettings={openSettings}
           dict={dict}
         />
         <Footer onReset={handleReset} dict={dict} />
