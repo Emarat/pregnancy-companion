@@ -84,7 +84,7 @@ export function useNotifications() {
     } catch {}
   }, []);
 
-  const scheduleSupplements = useCallback(async (supplements, customSupplements) => {
+  const scheduleSupplements = useCallback(async (supplements) => {
     if (!capAvailable || !prefs.enabled || !prefs.suppReminders) return;
 
     const [h, m] = (prefs.time || DEFAULT_TIME).split(':').map(Number);
@@ -107,20 +107,6 @@ export function useNotifications() {
         });
       }
     }
-
-    customSupplements.forEach((s, i) => {
-      if (!s.takenToday) {
-        notifications.push({
-          title: 'Medicine Reminder',
-          body: `Time to take ${s.name}${s.dosage ? ` (${s.dosage})` : ''}`,
-          id: 200 + i,
-          schedule,
-          smallIcon: 'ic_stat_notification',
-          iconColor: '#10B981',
-          channelId: 'preg_reminders',
-        });
-      }
-    });
 
     try {
       await LocalNotifications.cancel({ notifications: notifications.map(n => ({ id: n.id })) });

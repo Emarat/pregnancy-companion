@@ -26,7 +26,6 @@ export default function App() {
   const [lmp, setLmp] = useState('');
   const [supplements, setSupplements] = useState({ date: getLocalYYYYMMDD(), folicAcid: false, iron: false, calcium: false });
   const [vaccinations, setVaccinations] = useState({ tt1: false, tt2: false });
-  const [customSupplements, setCustomSupplements] = useState([]);
   const [darkMode, setDarkMode] = useState(() => localStorage.getItem('preg_dark') === 'true');
   const [activeTab, setActiveTab] = useState('home');
   const [careMode, setCareMode] = useState('ask');
@@ -58,48 +57,21 @@ export default function App() {
       }
     }
 
-    const savedCustom = localStorage.getItem('preg_custom_supplements');
-    if (savedCustom) {
-      setCustomSupplements(JSON.parse(savedCustom));
-    }
   }, []);
 
   useEffect(() => { localStorage.setItem('preg_lang', lang); }, [lang]);
   useEffect(() => { localStorage.setItem('preg_lmp', lmp); }, [lmp]);
   useEffect(() => { localStorage.setItem('preg_vaccines', JSON.stringify(vaccinations)); }, [vaccinations]);
   useEffect(() => { localStorage.setItem('preg_supplements', JSON.stringify(supplements)); }, [supplements]);
-  useEffect(() => { localStorage.setItem('preg_custom_supplements', JSON.stringify(customSupplements)); }, [customSupplements]);
-
   const todayStr = getLocalYYYYMMDD();
-
-  useEffect(() => {
-    setCustomSupplements(prev => prev.map(s => ({
-      ...s,
-      takenToday: s.takenDate === todayStr ? s.takenToday : false
-    })));
-  }, [todayStr]);
-
-  const addCustomSupplement = (item) => {
-    setCustomSupplements(prev => [...prev, { ...item, id: Date.now().toString(), takenToday: false, takenDate: '' }]);
-  };
-
-  const removeCustomSupplement = (id) => {
-    setCustomSupplements(prev => prev.filter(s => s.id !== id));
-  };
-
-  const toggleCustomSupplement = (id) => {
-    setCustomSupplements(prev => prev.map(s =>
-      s.id === id ? { ...s, takenToday: !s.takenToday, takenDate: !s.takenToday ? todayStr : '' } : s
-    ));
-  };
 
   const { prefs: notifPrefs, setPrefs: setNotifPrefs, scheduleSupplements, cancelAll, capAvailable, permStatus, requestPermission, openSettings } = useNotifications();
 
   useEffect(() => {
     if (capAvailable && notifPrefs.enabled) {
-      scheduleSupplements(supplements, customSupplements);
+      scheduleSupplements(supplements);
     }
-  }, [supplements, customSupplements, notifPrefs.enabled, notifPrefs.time, notifPrefs.suppReminders, capAvailable]);
+  }, [supplements, notifPrefs.enabled, notifPrefs.time, notifPrefs.suppReminders, capAvailable]);
 
   const pregData = useMemo(() => calculatePregnancyData(lmp, lang), [lmp, lang]);
 
@@ -116,12 +88,10 @@ export default function App() {
       setOnboardingComplete(false);
       setLmp('');
       setSupplements({ date: getLocalYYYYMMDD(), folicAcid: false, iron: false, calcium: false });
-      setCustomSupplements([]);
       setVaccinations({ tt1: false, tt2: false });
       localStorage.removeItem('preg_onboarding');
       localStorage.removeItem('preg_lmp');
       localStorage.removeItem('preg_supplements');
-      localStorage.removeItem('preg_custom_supplements');
       localStorage.removeItem('preg_vaccines');
     }
   };
@@ -173,10 +143,6 @@ export default function App() {
             <SupplementTracker
               supplements={supplements}
               onToggle={toggleSupplement}
-              customSupplements={customSupplements}
-              onToggleCustom={toggleCustomSupplement}
-              onAddCustom={addCustomSupplement}
-              onRemoveCustom={removeCustomSupplement}
               dict={dict}
             />
           </>
