@@ -25,41 +25,36 @@ export function useNotifications() {
   }, [prefs]);
 
   useEffect(() => {
+    let cancelled = false;
     const init = async () => {
       try {
-        try {
-          await LocalNotifications.deleteChannel({ id: 'preg_reminders' });
-        } catch {}
         await LocalNotifications.createChannel({
           id: 'preg_reminders',
-          name: 'Supplement Reminders',
-          description: 'Daily supplement and medication reminders',
+          name: 'Pregnancy Reminders',
+          description: 'Daily supplement, medicine, and vaccine reminders',
           importance: 5,
           visibility: 0,
           lightColor: '#10B981',
           vibration: true,
         });
         const perm = await LocalNotifications.checkPermissions();
-        setCapAvailable(true);
+        if (!cancelled) setCapAvailable(true);
         if (perm.display === 'prompt' && prefs.enabled) {
           await LocalNotifications.requestPermissions();
         }
       } catch {
-        setCapAvailable(false);
+        if (!cancelled) setCapAvailable(false);
       }
     };
     init();
-  }, [prefs.enabled]);
+    return () => { cancelled = true; };
+  }, []);
 
   const scheduleSupplements = useCallback(async (supplements, customSupplements) => {
     if (!capAvailable || !prefs.enabled || !prefs.suppReminders) return;
 
     const [h, m] = (prefs.time || DEFAULT_TIME).split(':').map(Number);
-    const nextFire = new Date();
-    nextFire.setHours(h, m, 0, 0);
-    if (nextFire <= new Date()) {
-      nextFire.setDate(nextFire.getDate() + 1);
-    }
+    const schedule = { on: { hour: h, minute: m }, repeats: true, allowWhileIdle: true };
 
     const notifications = [];
 
@@ -71,7 +66,7 @@ export function useNotifications() {
           title: 'Supplement Reminder',
           body: `Don't forget to take your ${names[key] || key} today!`,
           id: key === 'folicAcid' ? 101 : key === 'iron' ? 102 : 103,
-          schedule: { at: nextFire.toISOString(), repeats: true, allowWhileIdle: true },
+          schedule,
           smallIcon: 'ic_stat_notification',
           iconColor: '#10B981',
           channelId: 'preg_reminders',
@@ -85,7 +80,7 @@ export function useNotifications() {
           title: 'Medicine Reminder',
           body: `Time to take ${s.name}${s.dosage ? ` (${s.dosage})` : ''}`,
           id: 200 + i,
-          schedule: { at: nextFire.toISOString(), repeats: true, allowWhileIdle: true },
+          schedule,
           smallIcon: 'ic_stat_notification',
           iconColor: '#10B981',
           channelId: 'preg_reminders',
