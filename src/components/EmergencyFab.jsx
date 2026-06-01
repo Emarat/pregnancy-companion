@@ -30,15 +30,19 @@ export default function EmergencyFab({ dict }) {
     };
   }
 
+  const POPUP_H = 380;
+
   function getPopupPlacement(fabPos) {
-    const popupRight = fabPos.x + POPUP_W + 8;
-    const overflowRight = popupRight - window.innerWidth;
-    const adjustedX = overflowRight > 0 ? fabPos.x - overflowRight - 8 : fabPos.x;
-    return {
-      right: 'auto',
-      left: Math.max(8, adjustedX),
-      bottom: `${window.innerHeight - fabPos.y + GAP}px`,
-    };
+    const maxW = window.innerWidth;
+    const pr = fabPos.x + POPUP_W + 8;
+    const or = pr - maxW;
+    const l = or > 0 ? fabPos.x - or - 8 : fabPos.x;
+    const left = Math.max(8, l);
+    const spaceAbove = fabPos.y - GAP;
+    if (spaceAbove > POPUP_H) {
+      return { left, bottom: `${window.innerHeight - fabPos.y + GAP}px` };
+    }
+    return { left, top: `${fabPos.y + BTN + GAP}px` };
   }
 
   useEffect(() => {
@@ -60,6 +64,7 @@ export default function EmergencyFab({ dict }) {
   }, [pos]);
 
   const onDragStart = (clientX, clientY) => {
+    if (open) return;
     const rect = fabRef.current?.getBoundingClientRect();
     if (!rect) return;
     dragRef.current = {
@@ -80,7 +85,6 @@ export default function EmergencyFab({ dict }) {
       x: dragRef.current.startPosX + dx,
       y: dragRef.current.startPosY + dy,
     });
-    if (open) setOpen(false);
     setPos(next);
   };
 
@@ -90,12 +94,10 @@ export default function EmergencyFab({ dict }) {
   };
 
   const handleMouseDown = (e) => {
-    if (open) return;
     onDragStart(e.clientX, e.clientY);
   };
 
   const handleTouchStart = (e) => {
-    if (open) return;
     const touch = e.touches[0];
     onDragStart(touch.clientX, touch.clientY);
   };
@@ -119,11 +121,7 @@ export default function EmergencyFab({ dict }) {
     };
   }, [dragging]);
 
-  const fabStyle = pos.x !== null
-    ? { left: pos.x, top: pos.y, bottom: 'auto', right: 'auto' }
-    : {};
-
-  const popupStyle = pos.x !== null ? getPopupPlacement(pos) : {};
+  const hasPos = pos.x !== null;
 
   return (
     <>
@@ -134,76 +132,71 @@ export default function EmergencyFab({ dict }) {
         />
       )}
 
-      <div
+      <button
         ref={fabRef}
-        className="fixed z-50"
-        style={fabStyle}
+        onClick={() => { if (!dragging) setOpen(!open); }}
+        onMouseDown={handleMouseDown}
+        onTouchStart={handleTouchStart}
+        className={`fixed z-50 w-14 h-14 rounded-full shadow-lg flex items-center justify-center transition active:scale-90 ${
+          hasPos ? '' : 'bottom-6 right-4'
+        } ${
+          open
+            ? 'bg-gray-700 text-white rotate-45'
+            : 'bg-rose-600 text-white hover:bg-rose-700 animate-pulse hover:animate-none'
+        } ${dragging ? 'scale-110 shadow-2xl' : ''}`}
+        style={hasPos ? { left: pos.x, top: pos.y, bottom: 'auto', right: 'auto', cursor: dragging ? 'grabbing' : 'grab' } : { cursor: dragging ? 'grabbing' : 'grab' }}
+        aria-label={dict.emergencyTitle}
       >
-        <div className="flex flex-col items-end gap-3" style={{ position: 'relative' }}>
-          {open && (
-            <div
-              className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl border border-gray-100 dark:border-gray-700 w-72 p-4"
-              style={popupStyle}
-            >
-              <div className="flex items-center justify-between mb-3">
-                <div>
-                  <h3 className="font-bold text-gray-800 dark:text-gray-100 text-sm">{dict.emergencyTitle}</h3>
-                  <p className="text-[10px] text-gray-400 dark:text-gray-500">{dict.emergencySubtitle}</p>
-                </div>
-                <button
-                  onClick={() => setOpen(false)}
-                  className="p-1.5 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full transition"
-                >
-                  <X size={16} className="text-gray-400 dark:text-gray-500" />
-                </button>
-              </div>
+        {open ? <X size={24} /> : <Phone size={24} />}
+      </button>
 
-              <div className="space-y-2">
-                {CONTACTS.map((item) => {
-                  const Icon = item.icon;
-                  return (
-                    <a
-                      key={item.number + item.labelKey}
-                      href={`tel:${item.number}`}
-                      className={`flex items-center gap-3 p-3 rounded-xl ${item.bg} transition active:scale-[0.98]`}
-                    >
-                      <div className={`p-2 rounded-full bg-white dark:bg-gray-700 shadow-sm ${item.color}`}>
-                        <Icon size={16} />
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm font-semibold text-gray-800 dark:text-gray-100">{dict[item.labelKey]}</p>
-                        <p className="text-xs text-gray-500 dark:text-gray-400">{item.number}</p>
-                      </div>
-                      <span className={`text-xs font-semibold ${item.color} flex items-center gap-1`}>
-                        <Phone size={12} /> {dict.emergencyCall}
-                      </span>
-                    </a>
-                  );
-                })}
-              </div>
-
-              <p className="text-[9px] text-gray-400 dark:text-gray-500 text-center mt-3">
-                {dict.emergencyDisclaimer}
-              </p>
+      {open && (
+        <div
+          className="fixed z-50 bg-white dark:bg-gray-800 rounded-2xl shadow-xl border border-gray-100 dark:border-gray-700 w-72 p-4"
+          style={hasPos ? getPopupPlacement(pos) : { bottom: '92px', right: '16px' }}
+        >
+          <div className="flex items-center justify-between mb-3">
+            <div>
+              <h3 className="font-bold text-gray-800 dark:text-gray-100 text-sm">{dict.emergencyTitle}</h3>
+              <p className="text-[10px] text-gray-400 dark:text-gray-500">{dict.emergencySubtitle}</p>
             </div>
-          )}
+            <button
+              onClick={() => setOpen(false)}
+              className="p-1.5 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full transition"
+            >
+              <X size={16} className="text-gray-400 dark:text-gray-500" />
+            </button>
+          </div>
 
-          <button
-            onClick={() => { if (!dragging) setOpen(!open); }}
-            onMouseDown={handleMouseDown}
-            onTouchStart={handleTouchStart}
-            className={`w-14 h-14 rounded-full shadow-lg flex items-center justify-center transition active:scale-90 shrink-0 ${
-              open
-                ? 'bg-gray-700 text-white rotate-45'
-                : 'bg-rose-600 text-white hover:bg-rose-700 animate-pulse hover:animate-none'
-            } ${dragging ? 'scale-110 shadow-2xl' : ''}`}
-            style={{ cursor: dragging ? 'grabbing' : 'grab' }}
-            aria-label={dict.emergencyTitle}
-          >
-            {open ? <X size={24} /> : <Phone size={24} />}
-          </button>
+          <div className="space-y-2">
+            {CONTACTS.map((item) => {
+              const Icon = item.icon;
+              return (
+                <a
+                  key={item.number + item.labelKey}
+                  href={`tel:${item.number}`}
+                  className={`flex items-center gap-3 p-3 rounded-xl ${item.bg} transition active:scale-[0.98]`}
+                >
+                  <div className={`p-2 rounded-full bg-white dark:bg-gray-700 shadow-sm ${item.color}`}>
+                    <Icon size={16} />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-semibold text-gray-800 dark:text-gray-100">{dict[item.labelKey]}</p>
+                    <p className="text-xs text-gray-500 dark:text-gray-400">{item.number}</p>
+                  </div>
+                  <span className={`text-xs font-semibold ${item.color} flex items-center gap-1`}>
+                    <Phone size={12} /> {dict.emergencyCall}
+                  </span>
+                </a>
+              );
+            })}
+          </div>
+
+          <p className="text-[9px] text-gray-400 dark:text-gray-500 text-center mt-3">
+            {dict.emergencyDisclaimer}
+          </p>
         </div>
-      </div>
+      )}
     </>
   );
 }
