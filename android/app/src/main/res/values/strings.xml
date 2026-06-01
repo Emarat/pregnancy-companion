@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Pregnancy Companion</string>
+    <string name="title_activity_main">Pregnancy Companion</string>
+    <string name="package_name">com.example.pregcampinion</string>
+    <string name="custom_url_scheme">com.example.pregcampinion</string>
+</resources>
